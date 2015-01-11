@@ -2,11 +2,17 @@
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>de.codesourcery.luaparser</groupId>
-  <artifactId>luaparser</artifactId>
+  <artifactId>lua2json</artifactId>
   <version>1.0.0-SNAPSHOT</version>
-  <name>luaparser</name>
+  <name>lua2json</name>
 
   <dependencies>
+<dependency>
+	<groupId>org.antlr</groupId>
+	<artifactId>antlr4-runtime</artifactId>
+	<version>4.3</version>
+</dependency>
+
 <dependency>
 	<groupId>commons-lang</groupId>
 	<artifactId>commons-lang</artifactId>
@@ -19,4 +25,32 @@
 </dependency>
 
   </dependencies>
+
+  <build>
+    <plugins>
+<plugin>
+<groupId>org.apache.maven.plugins</groupId>
+<artifactId>maven-compiler-plugin</artifactId>
+<configuration>
+<source>1.8</source>
+<target>1.8</target>
+</configuration>
+</plugin>
+
+      <plugin>
+        <groupId>org.antlr</groupId>
+        <artifactId>antlr4-maven-plugin</artifactId>
+        <version>4.3</version>
+        <executions>
+          <execution>
+            <id>antlr</id>
+            <goals>
+              <goal>antlr4</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+
 </project>
