@@ -17,7 +17,6 @@ import java.util.function.Predicate;
 import org.antlr.v4.runtime.ANTLRInputStream;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.tree.ParseTree;
-import org.antlr.v4.runtime.tree.TerminalNode;
 import org.antlr.v4.runtime.tree.TerminalNodeImpl;
 import org.json.JSONObject;
 
@@ -39,6 +38,10 @@ import de.codesourcery.luaparser.antlr.LuaParser.TableconstructorContext;
 public class LuaToJSON
 {
 	private static final File OUTPUT_FILE = new File("/home/tobi/tmp/test.json");
+
+	private static int itemNumber = 0;
+
+	private static TableconstructorContext topLevelTable;
 
 	private static Writer writer;
 
@@ -70,16 +73,16 @@ public class LuaToJSON
 		final File f = new File("/home/tobi/Downloads/tmp/factorio/data/base/prototypes/recipe/recipe.lua");
 		final String input = readFile( LuaToJSON.class.getResourceAsStream("test.lua") );
 
-	    // Get our lexer
-	    final LuaLexer lexer = new LuaLexer(new ANTLRInputStream( input ) );
+		// Get our lexer
+		final LuaLexer lexer = new LuaLexer(new ANTLRInputStream( input ) );
 
-	    // Get a list of matched tokens
-	    final CommonTokenStream tokens = new CommonTokenStream(lexer);
+		// Get a list of matched tokens
+		final CommonTokenStream tokens = new CommonTokenStream(lexer);
 
-	    // Pass the tokens to the parser
-	    final LuaParser parser = new LuaParser(tokens);
+		// Pass the tokens to the parser
+		final LuaParser parser = new LuaParser(tokens);
 
-	    final LuaParser.ChunkContext context = parser.chunk();
+		final LuaParser.ChunkContext context = parser.chunk();
 
 		final NodeSearcher funcSearcher = new NodeSearcher( tree -> {
 			if ( tree instanceof FunctioncallContext)
@@ -94,39 +97,32 @@ public class LuaToJSON
 
 		System.out.println("Found: "+funcSearcher.matches+" data:extend() calls");
 
-		writer.append("{[ ");
+		writer.append("{");
 
 		funcSearcher.forEach( (funcContext,lastItem) ->
 		{
 			final FunctioncallContext match = (FunctioncallContext) funcContext;
 
-			final NodeSearcher fieldSearcher = new NodeSearcher( tree -> {
-				if ( tree instanceof FieldContext && tree.getChild(0) instanceof TerminalNode)
-				{
-					return true;
-				}
-				return false;
-			});
-			visitPreOrder( match , fieldSearcher );
+			final TableconstructorContext child = (TableconstructorContext) match.getChild(1) // NameAndArgsContext
+					.getChild(2) // ArgsContext
+					.getChild(1) // ExpListContext
+					.getChild(0) // ExpContext
+					.getChild(0); // TableconstructorContext
 
-			fieldSearcher.forEach( (fieldCtx,lastItem2) ->
-			{
-				final FieldContext fieldContext = (FieldContext) fieldCtx;
-				String text = printValue( fieldContext );
-				if ( ! lastItem2) {
-					text += " , ";
-				}
-				try {
-					writer.append( text );
-				} catch (final Exception e) {
-					throw new RuntimeException(e);
-				}
-				System.out.println("TRANSLATED: "+text);
-				System.out.println("======");
-			});
+			topLevelTable = child;
+
+			String text = "";
+			text += printValue( child , true );
+
+			try {
+				writer.append( text );
+			} catch (final Exception e) {
+				throw new RuntimeException(e);
+			}
+			System.out.println("TRANSLATED: "+text);
+			System.out.println("======");
 		});
-
-		writer.append(" ]}");
+		writer.append(" }");
 
 		System.out.println("File closed");
 		writer.flush();
@@ -137,24 +133,10 @@ public class LuaToJSON
 		final JSONObject object = new JSONObject( json );
 	}
 
-	private static String printValue(FieldContext fieldContext) {
-		final ParseTree child = fieldContext.getChild(0);
-		final String fieldName = child.getText();
-		System.out.println("FIELD: "+fieldName+" ("+fieldContext.getChildCount()+")");
-		final ExpContext expr = (ExpContext) fieldContext.getChild(2);
-		final ParseTree value = expr.getChild(0);
-		System.out.println("VALUE = "+value.getText()+" ("+value.getClass().getName()+")");
-		System.out.println("VALUE childcount = "+value.getChildCount());
-		return "\""+fieldName+"\": "+printValue(expr);
-	}
-
-	private static void printUnknownNode(ParseTree node) {
-		System.out.println("NODE: "+node.getClass().getName()+" => "+node.getText());
-		for ( int i = 0 ; i < node.getChildCount() ; i++ )
-		{
-			final ParseTree child = node.getChild( i );
-			System.out.println("Child "+i+" : "+child.getClass().getName()+" => "+child.getText());
-		}
+	private static String genItemName() {
+		final String result = "item_"+itemNumber;
+		itemNumber++;
+		return result;
 	}
 
 	private static String printValue(ParseTree value)
@@ -169,7 +151,7 @@ public class LuaToJSON
 			return value.getText();
 		}
 		if ( value instanceof TableconstructorContext) {
-			return printValue((TableconstructorContext) value);
+			return printValue((TableconstructorContext) value , false );
 		}
 		if ( value instanceof PrefixexpContext) {
 			return "\""+value.getText()+"\"";
@@ -183,7 +165,7 @@ public class LuaToJSON
 	private static String printValue(ExpContext value)
 	{
 		if ( value.getChild(0) instanceof TableconstructorContext) {
-			return printValue( (TableconstructorContext) value.getChild(0) );
+			return printValue( (TableconstructorContext) value.getChild(0) , false );
 		}
 		if ( value.getChild(0) instanceof PrefixexpContext) {
 			return printValue( value.getChild(0) );
@@ -275,7 +257,7 @@ public class LuaToJSON
 		throw new RuntimeException("Unhandled terminal: "+tree.getClass().getName());
 	}
 
-	private static String printValue(TableconstructorContext ctx)
+	private static String printValue(TableconstructorContext ctx,boolean isTopLevel)
 	{
 		if ( ctx.getChildCount() == 2 ) {
 			return "{}";
@@ -283,6 +265,9 @@ public class LuaToJSON
 		final FieldlistContext value = (FieldlistContext) ctx.getChild(1);
 		if ( isRecord( value ) ) {
 			return "{ "+printValue(value)+" }";
+		}
+		if ( ctx == topLevelTable ) {
+			return printValue(value);
 		}
 		return "[ "+printValue(value)+" ]";
 	}
@@ -315,6 +300,9 @@ public class LuaToJSON
 					buffer.append(" : ");
 					buffer.append( printValue( fieldCtx.getChild(2) ) );
 				} else {
+					if ( isImmediateChildOfTopLevel( tree.getChild(0) ) ) {
+						buffer.append("\"").append( genItemName() ).append("\": ");
+					}
 					buffer.append( printValue( tree.getChild(0) ) );
 				}
 			} else if ( tree instanceof FieldsepContext)
@@ -327,6 +315,17 @@ public class LuaToJSON
 			}
 		}
 		return buffer.toString();
+	}
+
+	private static boolean isImmediateChildOfTopLevel(ParseTree tree) {
+
+		int depth = 0;
+		ParseTree current = tree;
+		while ( current != topLevelTable && current != null ) {
+			current = current.getParent();
+			depth++;
+		}
+		return depth <= 3;
 	}
 
 	private static boolean isLastChildOfParent(ParseTree node) {
