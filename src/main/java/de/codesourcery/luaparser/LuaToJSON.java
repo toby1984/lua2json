@@ -12,6 +12,7 @@ import java.io.PrintWriter;
 import java.io.Writer;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiConsumer;
@@ -229,6 +230,23 @@ public class LuaToJSON
 
 		final PrintWriter writer = new PrintWriter(new FileWriter("/tmp/test.dot",false));
 		writer.println("digraph {");
+
+		for ( final Item item : items.values() )
+		{
+			String label=item.name;
+			if ( ! item.requirements.isEmpty() ) {
+				label += "\\n\\n";
+			}
+			for (final Iterator<ItemAndAmount> it = item.requirements.iterator(); it.hasNext();)
+			{
+				final ItemAndAmount a = it.next();
+				label += a.item.name+" x "+a.amount;
+				if ( it.hasNext() ) {
+					label += "\\n";
+				}
+			}
+			writer.println( '"'+item.name+"\"" + " [shape=box,label=\""+label+"\"];");
+		}
 
 		final String[] colors = {"black","red","green","blue","firebrick4","darkorchid","gold","cadetblue"};
 		for ( final Item item : items.values() )
