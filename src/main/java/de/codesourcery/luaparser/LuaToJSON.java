@@ -8,9 +8,12 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.PrintWriter;
 import java.io.Writer;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.function.BiConsumer;
 import java.util.function.Predicate;
 
@@ -18,6 +21,8 @@ import org.antlr.v4.runtime.ANTLRInputStream;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.TerminalNodeImpl;
+import org.apache.commons.lang.StringUtils;
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import de.codesourcery.luaparser.antlr.LuaLexer;
@@ -131,6 +136,112 @@ public class LuaToJSON
 		final String json = readFile( OUTPUT_FILE );
 
 		final JSONObject object = new JSONObject( json );
+		parseRecipes(object);
+	}
+
+	protected static final class ItemAndAmount
+	{
+		public final Item item;
+		public final double amount;
+		public ItemAndAmount(Item item,double amount) {
+			this.item = item;
+			this.amount = amount;
+		}
+
+		@Override
+		public String toString() {
+			return item.name+" x "+amount;
+		}
+	}
+
+	protected static final class Item
+	{
+		public final String name;
+		public final List<ItemAndAmount> requirements = new ArrayList<>();
+
+		public Item(String name) {
+			this.name = name;
+		}
+
+		@Override
+		public String toString() {
+			return "\""+name+"\" requires "+StringUtils.join(requirements," , " );
+		}
+	}
+
+	private static void parseRecipes(JSONObject object) throws IOException
+	{
+
+		final Map<String,Item> itemsByName = new HashMap<>();
+
+
+		System.out.println("Got "+object.getClass());
+		for ( final String key : object.keySet() )
+		{
+			final JSONObject recipe = object.getJSONObject(key);
+			final String name = recipe.getString("name");
+			final JSONArray requirements= recipe.getJSONArray("ingredients");
+			final int len = requirements.length();
+			System.out.println("Got "+name);
+
+			Item item = itemsByName.get(name);
+			if ( item == null ) {
+				item = new Item(name);
+				itemsByName.put(name,item);
+			}
+
+			for( int i = 0 ; i < len ; i++ )
+			{
+				final Object listEntry = requirements.get(i);
+
+				final String reqItemName;
+				final Double count;
+				if ( listEntry instanceof JSONArray) {
+					final JSONArray itemAndCount = (JSONArray) listEntry;
+					reqItemName = itemAndCount.getString(0);
+					count = itemAndCount.getDouble( 1 );
+				} else {
+					reqItemName = ((JSONObject) listEntry).getString("name");
+					count = ((JSONObject) listEntry).getDouble("amount");
+				}
+
+				Item reqItem  = itemsByName.get(reqItemName);
+				if ( reqItem == null ) {
+					reqItem = new Item(reqItemName);
+					itemsByName.put(reqItemName,reqItem);
+				}
+				item.requirements.add( new ItemAndAmount( reqItem , count ) );
+				System.out.println("requires: "+count+" x "+reqItemName);
+			}
+		}
+		printDot( itemsByName );
+	}
+
+	private static void printDot(Map<String,Item> items) throws IOException {
+
+		/*
+		 * strict graph {
+  a -- b
+  a -- b
+  b -- a [color=blue]
+}
+		 */
+
+		final PrintWriter writer = new PrintWriter(new FileWriter("/tmp/test.dot",false));
+		writer.println("digraph {");
+
+		final String[] colors = {"black","red","green","blue","firebrick4","darkorchid","gold","cadetblue"};
+		for ( final Item item : items.values() )
+		{
+			for ( final ItemAndAmount req : item.requirements )
+			{
+				final int colorBits = (req.item.name.hashCode() & 7);
+				final String color = colors[colorBits];
+				writer.println( '"'+req.item.name+"\" -> \""+item.name+"\"[color=\""+color+"\"];" );
+			}
+		}
+		writer.println("}");
+		writer.close();
 	}
 
 	private static String genItemName() {
