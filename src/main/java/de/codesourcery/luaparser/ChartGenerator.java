@@ -28,7 +28,7 @@ public class ChartGenerator
 		}
 		else if ( args.length == 0 )
 		{
-			appDir = new File( "/home/tgierke/apps/factorio" );
+			appDir = new File( "/home/tobi/Downloads/tmp/factorio");
 			dotOutput = new File("/tmp/factorio.dot");
 		}
 		else
@@ -60,9 +60,9 @@ public class ChartGenerator
 		final List<JSONFromFile> jsonData = new ArrayList<>();
 
 		final List<File> filesToParse = new ArrayList<>();
-		for ( File f : inputDir.listFiles() )
+		for ( final File f : inputDir.listFiles() )
 		{
-			if ( ! f.isFile() || f.getName().contains("demo" ) || ! f.getName().endsWith(".lua" ) ) {
+			if ( ! f.isFile() || ! f.getName().endsWith(".lua" ) ) {
 				System.out.println("Skipped: "+f.getAbsolutePath());
 				continue;
 			}
@@ -71,7 +71,7 @@ public class ChartGenerator
 
 		// filesToParse.add( new File(factorioInstallDir, "data/base/prototypes/entity/entities.lua"  ) );
 
-		for ( File f : filesToParse )
+		for ( final File f : filesToParse )
 		{
 			try
 			{
@@ -81,7 +81,7 @@ public class ChartGenerator
 				jsonData.add(new JSONFromFile(f , json) );
 				jsonParser.addJSON( json );
 			}
-			catch(Exception e)
+			catch(final Exception e)
 			{
 				e.printStackTrace();
 			}
@@ -95,7 +95,7 @@ public class ChartGenerator
 			try {
 				parsed = LenientJSONParser.parse(data.json);
 			}
-			catch(Exception e)
+			catch(final Exception e)
 			{
 				System.out.flush();
 				System.err.flush();
@@ -105,7 +105,7 @@ public class ChartGenerator
 				return;
 			}
 
-			for ( String key : parsed.keySet() )
+			for ( final String key : parsed.keySet() )
 			{
 				if ( root.has( key ) ) {
 					throw new RuntimeException("Failed to merge JSON data from file "+data.luaSourceFile+", duplicate key '"+key+"'");
