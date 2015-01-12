@@ -1,4 +1,9 @@
-This is a crude tool I did to extract material/item requirements from Factorio's .lua files. It uses a full-blown LUA parser (generated using the ANTLR parser generator) to extract data from the LUA files. Currently only a subset of LUA constructs is properly handled - I only implemented partial expression evaluation so LUA files that do things like 
+What's this ?
+=============
+
+This is a crude tool I did to extract material/item requirements from Factorio's .lua files and turn it into JSON. 
+
+It uses a full-blown LUA parser (generated using the ANTLR parser generator) to extract data from the LUA files. Currently only a subset of LUA constructs is properly handled - I only implemented partial expression evaluation so LUA files that do things like 
 "a" = 3*5 will work but not all operators are currently supported. Assignments that have a function invocation on the RHS will turn the function name into a string in the generated JSON output.
 
 The tool supports generating a .dot file that can be parsed by Graphviz to generate a (more-or-less) nice looking chart that shows all the items and their pre-cursor items/material. 
