@@ -4,6 +4,13 @@
   <artifactId>lua2json</artifactId>
   <version>1.0.0-SNAPSHOT</version>
   <name>lua2json</name>
+  <licenses>
+    <license>
+      <name>The Apache Software License, Version 2.0</name>
+      <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
   <dependencies>
     <dependency>
       <groupId>org.antlr</groupId>
@@ -70,6 +77,28 @@
             <phase>package</phase>
             <goals>
               <goal>single</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>com.mycila.maven-license-plugin</groupId>
+        <artifactId>maven-license-plugin</artifactId>
+        <version>1.9.0</version>
+        <configuration>
+          <header>${basedir}/etc/license_header.txt</header>
+          <quiet>false</quiet>
+          <failIfMissing>true</failIfMissing>
+          <basedir>${basedir}/src</basedir>
+          <excludes>
+            <exclude>**/log4j.properties</exclude>
+          </excludes>
+        </configuration>
+        <executions>
+          <execution>
+            <phase>package</phase>
+            <goals>
+              <goal>check</goal>
             </goals>
           </execution>
         </executions>
