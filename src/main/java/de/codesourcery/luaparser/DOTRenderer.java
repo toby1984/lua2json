@@ -11,7 +11,6 @@ import java.util.Map;
 
 public class DOTRenderer
 {
-
 	private float maxEdgeWidth=3.0f;
 	private float minEdgeWidth=1.0f;
 
