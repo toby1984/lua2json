@@ -63,12 +63,13 @@ public class ChartGenerator
 		for ( File f : inputDir.listFiles() )
 		{
 			if ( ! f.isFile() || f.getName().contains("demo" ) || ! f.getName().endsWith(".lua" ) ) {
-				System.out.println("IGNORED: "+f.getAbsolutePath());
+				System.out.println("Skipped: "+f.getAbsolutePath());
 				continue;
 			}
 			filesToParse.add(f);
 		}
-		filesToParse.add( new File(factorioInstallDir, "data/base/prototypes/entity/entities.lua"  ) );
+
+		// filesToParse.add( new File(factorioInstallDir, "data/base/prototypes/entity/entities.lua"  ) );
 
 		for ( File f : filesToParse )
 		{
